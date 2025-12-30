@@ -1,0 +1,20 @@
+# Prisma Migrations
+
+This directory contains Prisma database migrations.
+
+## Creating Migrations
+
+```bash
+# Create a new migration
+npm run prisma:migrate
+
+# Push schema changes without creating migration (for development)
+npm run prisma:push
+
+# Generate Prisma Client
+npm run prisma:generate
+```
+
+## Migration Files
+
+Migration files are automatically generated and should be committed to version control.

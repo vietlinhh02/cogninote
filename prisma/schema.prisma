@@ -1,0 +1,68 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  fullName     String?   @map("full_name")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  meetings     Meeting[]
+
+  @@map("users")
+}
+
+// Meeting model
+model Meeting {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  title        String
+  description  String?
+  meetingUrl   String?   @map("meeting_url")
+  platform     String?
+  scheduledAt  DateTime? @map("scheduled_at")
+  startedAt    DateTime? @map("started_at")
+  endedAt      DateTime? @map("ended_at")
+  status       String    @default("scheduled")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transcriptions Transcription[]
+
+  @@index([userId])
+  @@index([scheduledAt])
+  @@map("meetings")
+}
+
+// Transcription model
+model Transcription {
+  id             String    @id @default(uuid())
+  meetingId      String    @map("meeting_id")
+  speakerName    String?   @map("speaker_name")
+  text           String
+  timestampStart DateTime? @map("timestamp_start")
+  timestampEnd   DateTime? @map("timestamp_end")
+  confidence     Decimal?  @db.Decimal(5, 4)
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId])
+  @@map("transcriptions")
+}
