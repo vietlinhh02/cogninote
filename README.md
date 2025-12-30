@@ -145,15 +145,16 @@ cogninote/
 │   │   ├── redis.ts         # Redis setup
 │   │   └── swagger.ts       # API documentation
 │   ├── middlewares/         # Express middlewares
-│   │   ├── error-handler.ts
-│   │   ├── not-found.ts
-│   │   └── rate-limiter.ts
+│   │   ├── correlation-id.ts # Request correlation tracking
+│   │   ├── error-handler.ts  # Centralized error handling
+│   │   ├── not-found.ts      # 404 handler
+│   │   └── rate-limiter.ts   # Rate limiting
 │   ├── routes/              # API routes
 │   │   ├── health.routes.ts
 │   │   ├── auth.routes.ts
 │   │   └── meeting.routes.ts
 │   ├── utils/               # Utilities
-│   │   └── logger.ts
+│   │   └── logger.ts         # Winston logger with correlation ID
 │   ├── tests/               # Test files
 │   ├── app.ts               # Express app
 │   └── index.ts             # Entry point
@@ -176,6 +177,41 @@ cogninote/
 ├── LICENSE
 └── .gitignore
 ```
+
+## Middleware và Security Features
+
+### Request Correlation ID
+Mỗi request được gán một correlation ID duy nhất để theo dõi qua các logs:
+- Tự động sinh correlation ID nếu không có
+- Hỗ trợ custom correlation ID qua header `X-Correlation-ID`
+- Correlation ID được trả về trong response header
+- Tất cả logs đều bao gồm correlation ID để dễ dàng debug
+
+### Request/Response Logging
+- Winston logger với support cho correlation ID
+- Log format chuẩn với timestamp, level, message và metadata
+- Tự động log tất cả HTTP requests với Morgan
+- File logging riêng cho errors và combined logs
+- Structured logging với JSON format
+
+### Security Headers (Helmet)
+Backend được bảo vệ với các security headers:
+- Content Security Policy (CSP) để chống XSS
+- HSTS với max-age 1 năm
+- X-Content-Type-Options: nosniff
+- X-XSS-Protection enabled
+- Hide X-Powered-By header
+
+### Rate Limiting
+- Giới hạn số requests từ cùng IP
+- Mặc định: 100 requests / 15 phút
+- Có thể cấu hình qua environment variables
+- Standard headers cho rate limit info
+
+### CORS Configuration
+- Flexible CORS configuration qua environment
+- Support credentials cho authenticated requests
+- Configurable allowed origins
 
 ## Công Nghệ Sử Dụng
 
