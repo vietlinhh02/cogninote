@@ -10,19 +10,46 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Enums
+enum Role {
+  USER
+  ADMIN
+  MODERATOR
+}
+
 // User model
 model User {
   id           String    @id @default(uuid())
   email        String    @unique
   passwordHash String    @map("password_hash")
   fullName     String?   @map("full_name")
+  role         Role      @default(USER)
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  meetings     Meeting[]
+  meetings      Meeting[]
+  refreshTokens RefreshToken[]
 
   @@map("users")
+}
+
+// Refresh Token model
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
 }
 
 // Meeting model
