@@ -68,8 +68,9 @@ model Meeting {
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transcriptions Transcription[]
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transcriptions  Transcription[]
+  analysisResults AnalysisResult[]
 
   @@index([userId])
   @@index([scheduledAt])
@@ -92,4 +93,27 @@ model Transcription {
 
   @@index([meetingId])
   @@map("transcriptions")
+}
+
+// AnalysisResult model
+model AnalysisResult {
+  id            String   @id @default(uuid())
+  meetingId     String   @map("meeting_id")
+  analysisType  String   @map("analysis_type")
+  summary       String?
+  keyPoints     Json?    @map("key_points")
+  actionItems   Json?    @map("action_items")
+  sentiment     String?
+  topics        Json?
+  participants  Json?
+  metadata      Json?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId])
+  @@index([analysisType])
+  @@map("analysis_results")
 }
