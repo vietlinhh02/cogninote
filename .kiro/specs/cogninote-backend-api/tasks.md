@@ -5,7 +5,7 @@
   - Set up Docker and Docker Compose configuration
   - Configure PostgreSQL and Redis services
   - Set up environment configuration management with dotenv
-  - Initialize GitHub Actions workflow files
+  - Initialize GitHub Actions workflow files 
   - _Requirements: 1.1, 9.1, 9.2_
 
 - [ ]* 1.1 Write property test for project setup validation
