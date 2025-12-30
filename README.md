@@ -98,10 +98,10 @@ CogniNote là một ứng dụng web full-stack với frontend và backend riên
 ### Yêu Cầu Hệ Thống
 
 - Node.js >= 18.x
-- Python >= 3.9
-- Docker & Docker Compose (khuyến nghị)
-- PostgreSQL hoặc MongoDB
-- Redis (cho caching)
+- Docker & Docker Compose
+- npm >= 9.0.0
+- PostgreSQL 15+ (hoặc sử dụng Docker)
+- Redis 7+ (hoặc sử dụng Docker)
 - Git
 
 ### Cài Đặt và Chạy Ứng Dụng
@@ -111,49 +111,67 @@ CogniNote là một ứng dụng web full-stack với frontend và backend riên
 git clone https://github.com/vietlinhh02/cogninote.git
 cd cogninote
 
-# Cài đặt dependencies cho frontend
-cd src/frontend
+# Cài đặt dependencies
 npm install
 
-# Cài đặt dependencies cho backend
-cd ../backend
-pip install -r requirements.txt
+# Sao chép và cấu hình environment variables
+cp .env.example .env
+# Chỉnh sửa .env với API keys của bạn (GEMINI_API_KEY, JWT_SECRET, etc.)
 
-# Setup database
-docker-compose up -d
+# Khởi động PostgreSQL và Redis bằng Docker
+npm run docker:up
 
-# Chạy migrations
-python manage.py migrate
+# Chạy backend server (development mode với hot reload)
+npm run dev
 
-# Chạy backend server
-python app.py
-
-# Trong terminal khác, chạy frontend
-cd src/frontend
+# Hoặc build và chạy production mode
+npm run build
 npm start
 ```
 
 Ứng dụng sẽ chạy tại:
-- Frontend: http://localhost:3000
 - Backend API: http://localhost:8000
+- API Documentation (Swagger): http://localhost:8000/docs
+- Health Check: http://localhost:8000/api/health
 
 ## Cấu Trúc Dự Án
 
 ```
 cogninote/
-├── docs/                   # Tài liệu dự án
-│   ├── architecture/      # Tài liệu kiến trúc
-│   ├── api/               # Tài liệu API
-│   └── guides/            # Hướng dẫn sử dụng
-├── src/                   # Source code chính
-│   ├── frontend/          # Frontend application
-│   ├── backend/           # Backend services
-│   ├── ai/                # AI/ML modules
-│   └── shared/            # Shared utilities
-├── tests/                 # Test cases
-├── scripts/               # Utility scripts
-├── .github/               # GitHub workflows
-│   └── workflows/         # CI/CD pipelines
+├── src/                      # Source code
+│   ├── config/              # Configuration files
+│   │   ├── index.ts         # Main config
+│   │   ├── database.ts      # PostgreSQL setup
+│   │   ├── redis.ts         # Redis setup
+│   │   └── swagger.ts       # API documentation
+│   ├── middlewares/         # Express middlewares
+│   │   ├── error-handler.ts
+│   │   ├── not-found.ts
+│   │   └── rate-limiter.ts
+│   ├── routes/              # API routes
+│   │   ├── health.routes.ts
+│   │   ├── auth.routes.ts
+│   │   └── meeting.routes.ts
+│   ├── utils/               # Utilities
+│   │   └── logger.ts
+│   ├── tests/               # Test files
+│   ├── app.ts               # Express app
+│   └── index.ts             # Entry point
+├── docs/                    # Documentation
+│   ├── GETTING_STARTED.md   # Getting started guide
+│   └── ARCHITECTURE.md      # Architecture docs
+├── scripts/                 # Utility scripts
+│   └── init-db.sql          # Database initialization
+├── .github/                 # GitHub workflows
+│   └── workflows/           # CI/CD pipelines
+│       ├── ci-cd.yml        # Main CI/CD pipeline
+│       └── security.yml     # Security scanning
+├── docker-compose.yml       # Docker services
+├── Dockerfile               # Container image
+├── package.json             # Dependencies
+├── tsconfig.json            # TypeScript config
+├── jest.config.js           # Test config
+├── .env.example             # Environment template
 ├── README.md
 ├── LICENSE
 └── .gitignore
@@ -161,16 +179,15 @@ cogninote/
 
 ## Công Nghệ Sử Dụng
 
-### Frontend
-- React / Vue.js / Next.js
-- TypeScript
-- Tailwind CSS / Material-UI
-
 ### Backend
-- Node.js / Python
-- FastAPI / Express.js
-- PostgreSQL / MongoDB
-- Redis
+- **Node.js 18+** với TypeScript
+- **Express.js** - Web framework
+- **PostgreSQL 15** - Primary database
+- **Redis 7** - Caching và session storage
+- **JWT** - Authentication
+- **Winston** - Logging
+- **Jest** - Testing framework
+- **Swagger/OpenAPI** - API documentation
 
 ### AI/ML & Speech Processing
 - OpenAI Whisper / Google Speech-to-Text / Azure Speech Services
@@ -190,10 +207,11 @@ cogninote/
 
 ## Tài Liệu
 
-- [Kiến Trúc Hệ Thống](./docs/architecture/README.md)
-- [API Documentation](./docs/api/README.md)
-- [Hướng Dẫn Phát Triển](./docs/guides/DEVELOPMENT.md)
-- [Hướng Dẫn Triển Khai](./docs/guides/DEPLOYMENT.md)
+- [Hướng Dẫn Bắt Đầu](./docs/GETTING_STARTED.md) - Chi tiết về setup và development
+- [Kiến Trúc Hệ Thống](./docs/ARCHITECTURE.md) - Kiến trúc backend và data flow
+- [API Documentation](http://localhost:8000/docs) - Swagger UI (khi server đang chạy)
+- [Contributing Guide](./CONTRIBUTING.md) - Hướng dẫn đóng góp
+- [Security Policy](./SECURITY.md) - Chính sách bảo mật
 
 ## Đóng Góp
 
