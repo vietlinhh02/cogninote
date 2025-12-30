@@ -1,4 +1,4 @@
-import express, { Application, Request, Response, NextFunction } from 'express';
+import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -7,6 +7,7 @@ import { logger } from './utils/logger.js';
 import { errorHandler } from './middlewares/error-handler.js';
 import { notFoundHandler } from './middlewares/not-found.js';
 import { rateLimiter } from './middlewares/rate-limiter.js';
+import { correlationIdMiddleware } from './middlewares/correlation-id.js';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger.js';
 
@@ -27,16 +28,44 @@ class App {
   }
 
   private initializeMiddlewares(): void {
-    // Security
-    this.app.use(helmet());
+    // Correlation ID - must be first to track all requests
+    this.app.use(correlationIdMiddleware);
+
+    // Security headers with Helmet
+    this.app.use(
+      helmet({
+        contentSecurityPolicy: {
+          directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", 'data:', 'https:'],
+          },
+        },
+        hsts: {
+          maxAge: 31536000,
+          includeSubDomains: true,
+          preload: true,
+        },
+        noSniff: true,
+        xssFilter: true,
+        hidePoweredBy: true,
+      }),
+    );
+
+    // CORS
     this.app.use(cors(config.cors));
 
-    // Logging
-    this.app.use(morgan('combined', { stream: { write: (message) => logger.info(message.trim()) } }));
+    // Logging with correlation ID support
+    this.app.use(
+      morgan('combined', {
+        stream: { write: (message) => logger.info(message.trim()) },
+      }),
+    );
 
     // Body parsing
-    this.app.use(express.json());
-    this.app.use(express.urlencoded({ extended: true }));
+    this.app.use(express.json({ limit: '10mb' }));
+    this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
     // Rate limiting
     this.app.use(rateLimiter);
@@ -60,7 +89,14 @@ class App {
   }
 
   private initializeSwagger(): void {
-    this.app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+    // Swagger UI setup with custom options
+    const swaggerOptions = {
+      explorer: true,
+      customCss: '.swagger-ui .topbar { display: none }',
+      customSiteTitle: 'CogniNote API Documentation',
+    };
+
+    this.app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerOptions));
   }
 
   private initializeErrorHandling(): void {

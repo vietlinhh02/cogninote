@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { logger } from '../utils/logger.js';
 
 // PrismaClient is attached to the `global` object in development to prevent
