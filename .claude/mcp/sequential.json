@@ -1,0 +1,31 @@
+{
+  "name": "sequential-thinking",
+  "description": "Structured multi-step reasoning tools for complex analysis",
+  "config": {
+    "mcpServers": {
+      "sequential": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+      }
+    }
+  },
+  "capabilities": [
+    "Step-by-step reasoning",
+    "Hypothesis tracking",
+    "Evidence collection",
+    "Confidence scoring",
+    "Decision documentation"
+  ],
+  "usage": {
+    "example_prompts": [
+      "Analyze this bug systematically",
+      "Walk through this architecture decision step by step",
+      "Investigate the root cause with sequential thinking",
+      "Document the reasoning for this design choice"
+    ]
+  },
+  "requirements": {
+    "node": ">=18.0.0"
+  },
+  "notes": "Enhances complex problem-solving with structured reasoning. Pairs well with the sequential-thinking skill and deep-research mode."
+}

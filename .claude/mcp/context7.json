@@ -1,0 +1,31 @@
+{
+  "name": "context7",
+  "description": "Up-to-date library documentation lookup via Context7",
+  "config": {
+    "mcpServers": {
+      "context7": {
+        "command": "npx",
+        "args": ["-y", "@context7/mcp-server"]
+      }
+    }
+  },
+  "capabilities": [
+    "Library documentation lookup",
+    "API reference retrieval",
+    "Framework documentation",
+    "Package documentation"
+  ],
+  "usage": {
+    "example_prompts": [
+      "What's the latest API for React useEffect?",
+      "Show me FastAPI dependency injection docs",
+      "How do I use Prisma transactions?",
+      "What are the Next.js 14 app router conventions?"
+    ]
+  },
+  "requirements": {
+    "node": ">=18.0.0",
+    "network": true
+  },
+  "notes": "Provides real-time documentation lookup. Useful for getting current API information that may be newer than training data."
+}

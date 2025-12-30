@@ -1,0 +1,43 @@
+{
+  "name": "puppeteer",
+  "description": "Browser automation for testing and web interaction",
+  "config": {
+    "mcpServers": {
+      "puppeteer": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-puppeteer"]
+      }
+    }
+  },
+  "capabilities": [
+    "Browser automation",
+    "Screenshot capture",
+    "Form interaction",
+    "Page navigation",
+    "DOM manipulation",
+    "Network interception"
+  ],
+  "usage": {
+    "example_prompts": [
+      "Take a screenshot of the login page",
+      "Fill out the registration form and submit",
+      "Navigate through the checkout flow",
+      "Extract data from this web page",
+      "Test the responsive design at different viewports"
+    ]
+  },
+  "requirements": {
+    "node": ">=18.0.0",
+    "chromium": "Auto-downloaded by Puppeteer"
+  },
+  "security": {
+    "warning": "Puppeteer has full browser access. Use with caution.",
+    "recommendations": [
+      "Only use on trusted sites",
+      "Avoid entering real credentials",
+      "Review actions before execution",
+      "Use in sandboxed environments when possible"
+    ]
+  },
+  "notes": "Powerful for E2E testing and web automation. Use responsibly and verify actions before execution."
+}

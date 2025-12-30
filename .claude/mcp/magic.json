@@ -1,0 +1,43 @@
+{
+  "name": "magic",
+  "description": "AI-powered UI component generation from descriptions",
+  "config": {
+    "mcpServers": {
+      "magic": {
+        "command": "npx",
+        "args": ["-y", "@anthropic/magic-mcp-server"]
+      }
+    }
+  },
+  "capabilities": [
+    "UI component generation",
+    "React component creation",
+    "Tailwind CSS styling",
+    "Responsive design",
+    "Component variations"
+  ],
+  "usage": {
+    "example_prompts": [
+      "Generate a pricing card component",
+      "Create a navigation header with dropdown menus",
+      "Build a user profile card with avatar and stats",
+      "Design a dashboard layout with sidebar",
+      "Make a responsive hero section"
+    ]
+  },
+  "requirements": {
+    "node": ">=18.0.0",
+    "network": true
+  },
+  "output": {
+    "formats": ["React", "Vue", "HTML"],
+    "styling": ["Tailwind CSS", "CSS Modules", "Styled Components"],
+    "features": [
+      "Responsive by default",
+      "Accessible markup",
+      "Dark mode support",
+      "Component composition"
+    ]
+  },
+  "notes": "Generates production-ready UI components. Best used with Tailwind CSS projects. Review generated code before using in production."
+}
