@@ -1,5 +1,4 @@
 // Test setup file
-import { config } from '../config/index.js';
 
 // Set test environment variables
 process.env.NODE_ENV = 'test';
@@ -15,6 +14,10 @@ jest.mock('../utils/logger.js', () => ({
     error: jest.fn(),
     warn: jest.fn(),
     debug: jest.fn(),
+  },
+  asyncLocalStorage: {
+    getStore: jest.fn(),
+    run: jest.fn((_context, callback) => callback()),
   },
 }));
 
