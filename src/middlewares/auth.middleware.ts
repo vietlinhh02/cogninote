@@ -8,7 +8,7 @@ import { AuthenticatedRequest } from '../types/auth.types.js';
  */
 export const authenticate = async (
   req: AuthenticatedRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction,
 ): Promise<void> => {
   try {
