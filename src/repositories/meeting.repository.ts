@@ -20,6 +20,15 @@ export interface UpdateMeetingData {
   startedAt?: Date;
   endedAt?: Date;
   status?: string;
+  metadata?: any;
+}
+
+export interface CreateTranscriptionData {
+  speakerName?: string;
+  text: string;
+  timestampStart?: Date;
+  timestampEnd?: Date;
+  confidence?: number;
 }
 
 /**
@@ -221,6 +230,25 @@ export class MeetingRepository extends BaseRepository<Meeting> {
    */
   async countByStatus(status: string): Promise<number> {
     return this.count({ status });
+  }
+
+  /**
+   * Create transcription for a meeting
+   */
+  async createTranscription(
+    meetingId: string,
+    data: CreateTranscriptionData
+  ): Promise<any> {
+    return this.prisma.transcription.create({
+      data: {
+        meetingId,
+        speakerName: data.speakerName,
+        text: data.text,
+        timestampStart: data.timestampStart,
+        timestampEnd: data.timestampEnd,
+        confidence: data.confidence,
+      },
+    });
   }
 }
 
