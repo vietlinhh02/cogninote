@@ -6,6 +6,9 @@
 // Main service
 export { AIService, aiService } from './ai.service.js';
 
+// Analysis service
+export { AIAnalysisService, aiAnalysisService } from './ai-analysis.service.js';
+
 // Configuration
 export { AIConfigService, aiConfigService } from './config/ai-config.service.js';
 
@@ -37,3 +40,21 @@ export {
   ProviderConfigMap,
   ProviderConfigUpdate,
 } from './types/ai.types.js';
+
+// Analysis types
+export {
+  AnalysisType,
+  SentimentType,
+  ConfidenceScore,
+  SentimentAnalysis,
+  MeetingInsight,
+  ActionItem,
+  MeetingTopic,
+  SpeakerMetrics,
+  ContentAnalysisResult,
+  MeetingSummary,
+  AnalysisOptions,
+  AnalysisSchema,
+  AnalysisStatus,
+  AnalysisJob,
+} from './types/analysis.types.js';
