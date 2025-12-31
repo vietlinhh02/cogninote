@@ -12,6 +12,7 @@ import { meetingRepository } from '../../repositories/index.js';
 import { AppError } from '../../middlewares/error-handler.js';
 import { logger } from '../../utils/logger.js';
 import { cacheService } from '../cache.service.js';
+import { transcriptionService } from '../transcription.service.js';
 
 /**
  * Meeting Bot Service
@@ -244,8 +245,11 @@ export class MeetingBotService {
 
     const transcription = await this.recallService.getTranscription(botId);
 
-    // Store transcription segments in database
-    await this.storeTranscriptionSegments(meetingId, transcription);
+    // Process transcription using transcription service
+    await transcriptionService.processRealtimeTranscription(
+      meetingId,
+      transcription
+    );
 
     logger.info('Transcription stored', {
       meetingId,
@@ -382,26 +386,6 @@ export class MeetingBotService {
     });
 
     return meetings[0] || null;
-  }
-
-  /**
-   * Store transcription segments
-   */
-  private async storeTranscriptionSegments(
-    meetingId: string,
-    transcription: TranscriptionResponse
-  ): Promise<void> {
-    // Note: This uses a placeholder transcription creation method
-    // You'll need to implement this in the transcription repository
-    for (const segment of transcription.segments) {
-      await meetingRepository.createTranscription(meetingId, {
-        speakerName: segment.speaker,
-        text: segment.text,
-        timestampStart: new Date(segment.startTime * 1000),
-        timestampEnd: new Date(segment.endTime * 1000),
-        confidence: segment.confidence,
-      });
-    }
   }
 
   /**
