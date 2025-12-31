@@ -6,6 +6,11 @@ import {
 } from '../repositories/index.js';
 import { AppError } from '../middlewares/error-handler.js';
 import { cacheService } from './cache.service.js';
+import {
+  MeetingWithTranscriptions,
+  MeetingWithAnalysis,
+  MeetingWithRelations
+} from '../types/meeting.types.js';
 
 /**
  * Meeting Service
@@ -58,34 +63,34 @@ export class MeetingService {
   /**
    * Get meeting with transcriptions
    */
-  async getMeetingWithTranscriptions(id: string): Promise<Meeting> {
+  async getMeetingWithTranscriptions(id: string): Promise<MeetingWithTranscriptions> {
     const meeting = await meetingRepository.findByIdWithTranscriptions(id);
     if (!meeting) {
       throw new AppError('Meeting not found', 404);
     }
-    return meeting;
+    return meeting as MeetingWithTranscriptions;
   }
 
   /**
    * Get meeting with analysis results
    */
-  async getMeetingWithAnalysis(id: string): Promise<Meeting> {
+  async getMeetingWithAnalysis(id: string): Promise<MeetingWithAnalysis> {
     const meeting = await meetingRepository.findByIdWithAnalysis(id);
     if (!meeting) {
       throw new AppError('Meeting not found', 404);
     }
-    return meeting;
+    return meeting as MeetingWithAnalysis;
   }
 
   /**
    * Get meeting with all relations
    */
-  async getMeetingWithRelations(id: string): Promise<Meeting> {
+  async getMeetingWithRelations(id: string): Promise<MeetingWithRelations> {
     const meeting = await meetingRepository.findByIdWithRelations(id);
     if (!meeting) {
       throw new AppError('Meeting not found', 404);
     }
-    return meeting;
+    return meeting as MeetingWithRelations;
   }
 
   /**
@@ -97,29 +102,52 @@ export class MeetingService {
       skip?: number;
       take?: number;
       status?: string;
+      startDate?: Date;
+      endDate?: Date;
+      platform?: string;
+      search?: string;
     }
   ): Promise<{ meetings: Meeting[]; total: number }> {
     const cacheKey = `${this.CACHE_PREFIX}list:user:${userId}:${JSON.stringify(options)}`;
     const cached = await cacheService.get<{ meetings: Meeting[]; total: number }>(cacheKey);
     if (cached) return cached;
 
-    let meetings: Meeting[];
+    // Build where clause with advanced filtering
+    const where: any = { userId };
+
     if (options?.status) {
-      meetings = await meetingRepository.findAll({
-        where: { userId, status: options.status },
-        skip: options.skip,
-        take: options.take,
-        orderBy: { createdAt: 'desc' },
-      });
-    } else {
-      meetings = await meetingRepository.findByUserId(userId, {
-        skip: options?.skip,
-        take: options?.take,
-        orderBy: { createdAt: 'desc' },
-      });
+      where.status = options.status;
     }
 
-    const total = await meetingRepository.countByUserId(userId);
+    if (options?.platform) {
+      where.platform = options.platform;
+    }
+
+    if (options?.startDate || options?.endDate) {
+      where.scheduledAt = {};
+      if (options.startDate) {
+        where.scheduledAt.gte = options.startDate;
+      }
+      if (options.endDate) {
+        where.scheduledAt.lte = options.endDate;
+      }
+    }
+
+    if (options?.search) {
+      where.OR = [
+        { title: { contains: options.search, mode: 'insensitive' } },
+        { description: { contains: options.search, mode: 'insensitive' } },
+      ];
+    }
+
+    const meetings = await meetingRepository.findAll({
+      where,
+      skip: options?.skip,
+      take: options?.take,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const total = await meetingRepository.count(where);
 
     const result = { meetings, total };
     await cacheService.set(cacheKey, result, this.CACHE_TTL);
@@ -184,6 +212,52 @@ export class MeetingService {
     }
 
     const updated = await meetingRepository.startMeeting(id);
+    await this.invalidateCache(id);
+
+    return updated;
+  }
+
+  /**
+   * Pause a meeting
+   */
+  async pauseMeeting(id: string, userId: string): Promise<Meeting> {
+    const meeting = await meetingRepository.findById(id);
+    if (!meeting) {
+      throw new AppError('Meeting not found', 404);
+    }
+
+    if (meeting.userId !== userId) {
+      throw new AppError('Unauthorized to pause this meeting', 403);
+    }
+
+    if (meeting.status !== 'in_progress') {
+      throw new AppError('Meeting is not in progress', 400);
+    }
+
+    const updated = await meetingRepository.updateStatus(id, 'paused');
+    await this.invalidateCache(id);
+
+    return updated;
+  }
+
+  /**
+   * Resume a meeting
+   */
+  async resumeMeeting(id: string, userId: string): Promise<Meeting> {
+    const meeting = await meetingRepository.findById(id);
+    if (!meeting) {
+      throw new AppError('Meeting not found', 404);
+    }
+
+    if (meeting.userId !== userId) {
+      throw new AppError('Unauthorized to resume this meeting', 403);
+    }
+
+    if (meeting.status !== 'paused') {
+      throw new AppError('Meeting is not paused', 400);
+    }
+
+    const updated = await meetingRepository.updateStatus(id, 'in_progress');
     await this.invalidateCache(id);
 
     return updated;
