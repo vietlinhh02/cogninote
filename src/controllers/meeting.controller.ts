@@ -3,6 +3,7 @@ import { meetingService } from '../services/meeting.service.js';
 import { CreateMeetingData, UpdateMeetingData } from '../repositories/meeting.repository.js';
 import { AppError } from '../middlewares/error-handler.js';
 import { MeetingWithRelations } from '../types/meeting.types.js';
+import { transformMeetingResponse, transformMeetingsResponse } from '../utils/meeting-transformer.js';
 
 export class MeetingController {
   /**
@@ -24,7 +25,10 @@ export class MeetingController {
       };
 
       const result = await meetingService.getUserMeetings(userId, options);
-      res.json(result);
+      res.json({
+        meetings: transformMeetingsResponse(result.meetings),
+        total: result.total,
+      });
     } catch (error) {
       next(error);
     }
@@ -35,14 +39,18 @@ export class MeetingController {
    */
   async createMeeting(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = req.user!.id;
+      if (!req.user || !req.user.id) {
+        throw new AppError('Unauthorized - Authentication required', 401);
+      }
+
+      const userId = req.user.id;
       const data: CreateMeetingData = {
         ...req.body,
         userId,
       };
 
       const meeting = await meetingService.createMeeting(data);
-      res.status(201).json(meeting);
+      res.status(201).json(transformMeetingResponse(meeting));
     } catch (error) {
       next(error);
     }
@@ -72,7 +80,7 @@ export class MeetingController {
         throw new AppError('Unauthorized access to meeting', 403);
       }
 
-      res.json(meeting);
+      res.json(transformMeetingResponse(meeting));
     } catch (error) {
       next(error);
     }
@@ -88,7 +96,7 @@ export class MeetingController {
       const data: UpdateMeetingData = req.body;
 
       const meeting = await meetingService.updateMeeting(id, userId, data);
-      res.json(meeting);
+      res.json(transformMeetingResponse(meeting));
     } catch (error) {
       next(error);
     }
@@ -118,7 +126,7 @@ export class MeetingController {
       const userId = req.user!.id;
 
       const meeting = await meetingService.startMeeting(id, userId);
-      res.json(meeting);
+      res.json(transformMeetingResponse(meeting));
     } catch (error) {
       next(error);
     }
@@ -133,7 +141,7 @@ export class MeetingController {
       const userId = req.user!.id;
 
       const meeting = await meetingService.pauseMeeting(id, userId);
-      res.json(meeting);
+      res.json(transformMeetingResponse(meeting));
     } catch (error) {
       next(error);
     }
@@ -148,7 +156,7 @@ export class MeetingController {
       const userId = req.user!.id;
 
       const meeting = await meetingService.resumeMeeting(id, userId);
-      res.json(meeting);
+      res.json(transformMeetingResponse(meeting));
     } catch (error) {
       next(error);
     }
@@ -163,7 +171,7 @@ export class MeetingController {
       const userId = req.user!.id;
 
       const meeting = await meetingService.endMeeting(id, userId);
-      res.json(meeting);
+      res.json(transformMeetingResponse(meeting));
     } catch (error) {
       next(error);
     }
