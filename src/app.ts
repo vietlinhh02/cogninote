@@ -15,6 +15,7 @@ import { swaggerSpec } from './config/swagger.js';
 import healthRoutes from './routes/health.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import meetingRoutes from './routes/meeting.routes.js';
+import meetingBotRoutes from './routes/meeting-bot.routes.js';
 
 class App {
   public app: Application;
@@ -76,6 +77,7 @@ class App {
     this.app.use('/api/health', healthRoutes);
     this.app.use('/api/auth', authRoutes);
     this.app.use('/api/meetings', meetingRoutes);
+    this.app.use('/api/meetings', meetingBotRoutes);
 
     // Root endpoint
     this.app.get('/', (_req: Request, res: Response) => {
