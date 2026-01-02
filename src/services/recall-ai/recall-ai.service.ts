@@ -47,7 +47,7 @@ export class RecallAIService {
       timeout: cfg.timeout || 30000,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
+        Authorization: `Token ${this.apiKey}`,
       },
     });
 
@@ -65,35 +65,41 @@ export class RecallAIService {
         meetingUrl: request.meetingUrl,
       });
 
+      // Recall.ai API payload structure based on official docs
       const payload = {
         meeting_url: request.meetingUrl,
-        platform: request.platform,
         bot_name: request.botName || 'CogniNote Bot',
-        recording_mode: {
-          audio: request.recordAudio !== false,
-          video: request.recordVideo !== false,
-          transcription: request.recordTranscription !== false,
+        recording_config: {
+          transcript: {
+            provider: {
+              recallai_streaming: {
+                language_code: 'auto',
+              },
+            },
+          },
         },
-        auto_leave: request.autoLeave || {
-          enabled: true,
-          no_activity_timeout: 5,
-          waiting_room_timeout: 2,
+        chat: {
+          on_bot_join: {
+            send_to: 'everyone',
+            message: 'CogniNote bot has joined to record this meeting',
+          },
         },
-        metadata: {
-          meeting_id: request.meetingId,
-          ...request.metadata,
+        automatic_leave: {
+          waiting_room_timeout: 120,
+          noone_joined_timeout: 120,
+          everyone_left_timeout: 120,
         },
       };
 
       const response = await this.executeWithRetry(() =>
-        this.client.post('/bots', payload)
+        this.client.post('/bot', payload)
       );
 
       const botResponse: DeployBotResponse = {
         botId: response.data.id,
-        status: this.mapBotStatus(response.data.status),
+        status: this.mapBotStatus(response.data.status_changes?.[0]?.code || 'ready'),
         meetingUrl: response.data.meeting_url,
-        platform: this.mapPlatform(response.data.platform),
+        platform: this.mapPlatform(request.platform),
         createdAt: response.data.created_at,
       };
 
@@ -120,25 +126,24 @@ export class RecallAIService {
       logger.debug('Fetching bot status', { botId });
 
       const response = await this.executeWithRetry(() =>
-        this.client.get(`/bots/${botId}`)
+        this.client.get(`/bot/${botId}`)
       );
 
       const statusResponse: BotStatusResponse = {
         botId: response.data.id,
-        status: this.mapBotStatus(response.data.status),
+        status: this.mapBotStatus(response.data.status_changes?.[0]?.code || 'ready'),
         meetingUrl: response.data.meeting_url,
-        platform: this.mapPlatform(response.data.platform),
-        joinedAt: response.data.joined_at,
-        leftAt: response.data.left_at,
-        recordingStartedAt: response.data.recording_started_at,
-        recordingEndedAt: response.data.recording_ended_at,
-        participants: response.data.participants?.map((p: any) => ({
+        platform: MeetingPlatform.GOOGLE_MEET, // Default, will be updated from meeting data
+        joinedAt: response.data.join_at,
+        leftAt: response.data.leave_at,
+        recordingStartedAt: response.data.recording?.start_time,
+        recordingEndedAt: response.data.recording?.end_time,
+        participants: response.data.calendar_meetings?.[0]?.participants?.map((p: any) => ({
           id: p.id,
           name: p.name,
-          joinedAt: p.joined_at,
-          leftAt: p.left_at,
+          events: p.events,
         })),
-        error: response.data.error,
+        error: response.data.status_changes?.find((s: any) => s.code === 'fatal')?.message,
       };
 
       return statusResponse;
@@ -159,7 +164,7 @@ export class RecallAIService {
       logger.info('Stopping bot', { botId });
 
       await this.executeWithRetry(() =>
-        this.client.post(`/bots/${botId}/leave`)
+        this.client.delete(`/bot/${botId}`)
       );
 
       logger.info('Bot stop command sent', { botId });
@@ -180,14 +185,15 @@ export class RecallAIService {
       logger.info('Fetching recording download URLs', { botId });
 
       const response = await this.executeWithRetry(() =>
-        this.client.get(`/bots/${botId}/recording`)
+        this.client.get(`/bot/${botId}`)
       );
 
+      // Extract video and audio URLs from the bot data
       const download: RecordingDownload = {
-        audioUrl: response.data.audio_url,
+        audioUrl: response.data.video_url, // Recall.ai provides combined video URL
         videoUrl: response.data.video_url,
-        transcriptUrl: response.data.transcript_url,
-        expiresAt: response.data.expires_at,
+        transcriptUrl: undefined, // Transcripts are accessed separately
+        expiresAt: undefined,
       };
 
       return download;
@@ -208,21 +214,21 @@ export class RecallAIService {
       logger.info('Fetching transcription', { botId });
 
       const response = await this.executeWithRetry(() =>
-        this.client.get(`/bots/${botId}/transcript`)
+        this.client.get(`/bot/${botId}/transcript`)
       );
 
       const transcription: TranscriptionResponse = {
         botId,
         meetingId: response.data.metadata?.meeting_id || '',
-        segments: response.data.segments.map((seg: any) => ({
-          speaker: seg.speaker,
-          text: seg.text,
-          startTime: seg.start_time,
-          endTime: seg.end_time,
-          confidence: seg.confidence,
+        segments: (response.data.words || []).map((word: any) => ({
+          speaker: word.speaker_id,
+          text: word.text,
+          startTime: word.start_time,
+          endTime: word.end_time,
+          confidence: 1.0,
         })),
-        language: response.data.language,
-        duration: response.data.duration,
+        language: response.data.language || 'vi',
+        duration: 0,
       };
 
       logger.info('Transcription fetched', {
@@ -285,13 +291,14 @@ export class RecallAIService {
    */
   private mapBotStatus(status: string): BotStatus {
     const statusMap: Record<string, BotStatus> = {
-      idle: BotStatus.IDLE,
-      joining: BotStatus.JOINING,
-      in_meeting: BotStatus.IN_MEETING,
-      recording: BotStatus.RECORDING,
-      leaving: BotStatus.LEAVING,
-      completed: BotStatus.COMPLETED,
-      failed: BotStatus.FAILED,
+      ready: BotStatus.IDLE,
+      joining_call: BotStatus.JOINING,
+      in_waiting_room: BotStatus.JOINING,
+      in_call_not_recording: BotStatus.IN_MEETING,
+      in_call_recording: BotStatus.RECORDING,
+      call_ended: BotStatus.COMPLETED,
+      fatal: BotStatus.FAILED,
+      done: BotStatus.COMPLETED,
     };
 
     return statusMap[status] || BotStatus.IDLE;

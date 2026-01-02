@@ -107,7 +107,7 @@ export interface RecordingDownload {
   audioUrl?: string;
   videoUrl?: string;
   transcriptUrl?: string;
-  expiresAt: string;
+  expiresAt?: string;
 }
 
 /**
