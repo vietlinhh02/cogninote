@@ -2,6 +2,7 @@ import App from './app.js';
 import { logger } from './utils/logger.js';
 import { connectDatabase } from './config/database.js';
 import { connectRedis } from './config/redis.js';
+import { meetingBotScheduler } from './jobs/meeting-bot.job.js';
 
 async function bootstrap(): Promise<void> {
   try {
@@ -12,6 +13,10 @@ async function bootstrap(): Promise<void> {
     // Connect to Redis
     await connectRedis();
     logger.info('Redis connected successfully');
+
+    // Start meeting bot scheduler
+    meetingBotScheduler.start();
+    logger.info('Meeting bot scheduler started');
 
     // Start server
     const app = new App();
@@ -37,6 +42,7 @@ process.on('unhandledRejection', (reason: unknown) => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
   logger.info('SIGTERM received, shutting down gracefully');
+  meetingBotScheduler.stop();
   process.exit(0);
 });
 
