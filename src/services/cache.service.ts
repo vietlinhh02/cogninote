@@ -7,10 +7,13 @@ import { logger } from '../utils/logger.js';
  * Handles caching operations with Redis
  */
 export class CacheService {
-  private redis: RedisClientType;
+  private redis: RedisClientType | null = null;
 
-  constructor() {
-    this.redis = getRedis();
+  private getRedisClient(): RedisClientType {
+    if (!this.redis) {
+      this.redis = getRedis();
+    }
+    return this.redis;
   }
 
   /**
@@ -18,7 +21,7 @@ export class CacheService {
    */
   async get<T>(key: string): Promise<T | null> {
     try {
-      const value = await this.redis.get(key);
+      const value = await this.getRedisClient().get(key);
       if (!value) return null;
 
       return JSON.parse(value) as T;
@@ -33,12 +36,13 @@ export class CacheService {
    */
   async set(key: string, value: any, ttlSeconds?: number): Promise<boolean> {
     try {
+      const redis = this.getRedisClient();
       const serialized = JSON.stringify(value);
 
       if (ttlSeconds) {
-        await this.redis.setEx(key, ttlSeconds, serialized);
+        await redis.setEx(key, ttlSeconds, serialized);
       } else {
-        await this.redis.set(key, serialized);
+        await redis.set(key, serialized);
       }
 
       return true;
@@ -53,7 +57,7 @@ export class CacheService {
    */
   async delete(key: string): Promise<boolean> {
     try {
-      await this.redis.del(key);
+      await this.getRedisClient().del(key);
       return true;
     } catch (error) {
       logger.error(`Cache delete error for key ${key}:`, error);
@@ -66,10 +70,11 @@ export class CacheService {
    */
   async deletePattern(pattern: string): Promise<number> {
     try {
-      const keys = await this.redis.keys(pattern);
+      const redis = this.getRedisClient();
+      const keys = await redis.keys(pattern);
       if (keys.length === 0) return 0;
 
-      await this.redis.del(keys);
+      await redis.del(keys);
       return keys.length;
     } catch (error) {
       logger.error(`Cache delete pattern error for ${pattern}:`, error);
@@ -82,7 +87,7 @@ export class CacheService {
    */
   async exists(key: string): Promise<boolean> {
     try {
-      const exists = await this.redis.exists(key);
+      const exists = await this.getRedisClient().exists(key);
       return exists === 1;
     } catch (error) {
       logger.error(`Cache exists error for key ${key}:`, error);
@@ -95,7 +100,7 @@ export class CacheService {
    */
   async expire(key: string, ttlSeconds: number): Promise<boolean> {
     try {
-      await this.redis.expire(key, ttlSeconds);
+      await this.getRedisClient().expire(key, ttlSeconds);
       return true;
     } catch (error) {
       logger.error(`Cache expire error for key ${key}:`, error);
@@ -108,7 +113,7 @@ export class CacheService {
    */
   async ttl(key: string): Promise<number> {
     try {
-      return await this.redis.ttl(key);
+      return await this.getRedisClient().ttl(key);
     } catch (error) {
       logger.error(`Cache TTL error for key ${key}:`, error);
       return -1;
@@ -120,7 +125,7 @@ export class CacheService {
    */
   async increment(key: string, amount: number = 1): Promise<number> {
     try {
-      return await this.redis.incrBy(key, amount);
+      return await this.getRedisClient().incrBy(key, amount);
     } catch (error) {
       logger.error(`Cache increment error for key ${key}:`, error);
       throw error;
@@ -132,7 +137,7 @@ export class CacheService {
    */
   async decrement(key: string, amount: number = 1): Promise<number> {
     try {
-      return await this.redis.decrBy(key, amount);
+      return await this.getRedisClient().decrBy(key, amount);
     } catch (error) {
       logger.error(`Cache decrement error for key ${key}:`, error);
       throw error;
@@ -166,7 +171,7 @@ export class CacheService {
   async hSet(key: string, field: string, value: any): Promise<boolean> {
     try {
       const serialized = JSON.stringify(value);
-      await this.redis.hSet(key, field, serialized);
+      await this.getRedisClient().hSet(key, field, serialized);
       return true;
     } catch (error) {
       logger.error(`Cache hSet error for key ${key}, field ${field}:`, error);
@@ -179,7 +184,7 @@ export class CacheService {
    */
   async hGet<T>(key: string, field: string): Promise<T | null> {
     try {
-      const value = await this.redis.hGet(key, field);
+      const value = await this.getRedisClient().hGet(key, field);
       if (!value) return null;
 
       return JSON.parse(value) as T;
@@ -194,7 +199,7 @@ export class CacheService {
    */
   async hGetAll<T>(key: string): Promise<Record<string, T>> {
     try {
-      const data = await this.redis.hGetAll(key);
+      const data = await this.getRedisClient().hGetAll(key);
       const result: Record<string, T> = {};
 
       for (const [field, value] of Object.entries(data)) {
@@ -213,7 +218,7 @@ export class CacheService {
    */
   async hDel(key: string, field: string): Promise<boolean> {
     try {
-      await this.redis.hDel(key, field);
+      await this.getRedisClient().hDel(key, field);
       return true;
     } catch (error) {
       logger.error(`Cache hDel error for key ${key}, field ${field}:`, error);
@@ -226,7 +231,7 @@ export class CacheService {
    */
   async sAdd(key: string, ...members: string[]): Promise<boolean> {
     try {
-      await this.redis.sAdd(key, members);
+      await this.getRedisClient().sAdd(key, members);
       return true;
     } catch (error) {
       logger.error(`Cache sAdd error for key ${key}:`, error);
@@ -239,7 +244,7 @@ export class CacheService {
    */
   async sRem(key: string, ...members: string[]): Promise<boolean> {
     try {
-      await this.redis.sRem(key, members);
+      await this.getRedisClient().sRem(key, members);
       return true;
     } catch (error) {
       logger.error(`Cache sRem error for key ${key}:`, error);
@@ -252,7 +257,7 @@ export class CacheService {
    */
   async sMembers(key: string): Promise<string[]> {
     try {
-      return await this.redis.sMembers(key);
+      return await this.getRedisClient().sMembers(key);
     } catch (error) {
       logger.error(`Cache sMembers error for key ${key}:`, error);
       return [];
@@ -264,7 +269,7 @@ export class CacheService {
    */
   async sIsMember(key: string, member: string): Promise<boolean> {
     try {
-      return await this.redis.sIsMember(key, member);
+      return await this.getRedisClient().sIsMember(key, member);
     } catch (error) {
       logger.error(`Cache sIsMember error for key ${key}:`, error);
       return false;
@@ -276,7 +281,7 @@ export class CacheService {
    */
   async flushAll(): Promise<boolean> {
     try {
-      await this.redis.flushAll();
+      await this.getRedisClient().flushAll();
       logger.warn('Cache flushed: All keys deleted');
       return true;
     } catch (error) {
