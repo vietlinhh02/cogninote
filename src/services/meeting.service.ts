@@ -11,6 +11,8 @@ import {
   MeetingWithAnalysis,
   MeetingWithRelations
 } from '../types/meeting.types.js';
+import { meetingBotService } from './recall-ai/meeting-bot.service.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Meeting Service
@@ -41,6 +43,56 @@ export class MeetingService {
   async createMeeting(data: CreateMeetingData): Promise<Meeting> {
     const meeting = await meetingRepository.create(data);
     await this.invalidateCache(meeting.id);
+
+    // Auto-deploy bot if meeting has URL and is scheduled
+    if (meeting.meetingUrl && meeting.scheduledAt) {
+      try {
+        const now = new Date();
+        const scheduledTime = new Date(meeting.scheduledAt);
+        const timeDiff = scheduledTime.getTime() - now.getTime();
+        const minutesUntilMeeting = timeDiff / (1000 * 60);
+
+        // Deploy bot if meeting is within 30 minutes or already started
+        if (minutesUntilMeeting <= 30) {
+          logger.info('Auto-deploying bot for meeting', {
+            meetingId: meeting.id,
+            scheduledAt: meeting.scheduledAt,
+            minutesUntilMeeting,
+          });
+
+          await meetingBotService.deployBotToMeeting(
+            meeting.id,
+            meeting.userId,
+            {
+              botName: 'CogniNote Bot',
+              recordAudio: true,
+              recordVideo: false,
+              recordTranscription: true,
+            }
+          );
+
+          logger.info('Bot deployed successfully for new meeting', {
+            meetingId: meeting.id,
+          });
+
+          // Fetch updated meeting with bot metadata
+          const updatedMeeting = await meetingRepository.findById(meeting.id);
+          return updatedMeeting || meeting;
+        } else {
+          logger.info('Meeting scheduled too far in advance, bot will be deployed later', {
+            meetingId: meeting.id,
+            minutesUntilMeeting,
+          });
+        }
+      } catch (error) {
+        // Don't fail meeting creation if bot deployment fails
+        logger.error('Failed to auto-deploy bot for meeting', {
+          meetingId: meeting.id,
+          error: String(error),
+        });
+      }
+    }
+
     return meeting;
   }
 
