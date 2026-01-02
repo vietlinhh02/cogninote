@@ -171,8 +171,14 @@ export class AuthService {
   /**
    * Logout from all devices
    */
-  static async logoutAll(userId: string): Promise<void> {
+  static async logoutAll(userId: string, currentAccessToken?: string): Promise<void> {
+    // Revoke all refresh tokens
     await TokenService.revokeAllUserTokens(userId);
+    
+    // Blacklist current access token if provided
+    if (currentAccessToken) {
+      await TokenService.blacklistToken(currentAccessToken, userId);
+    }
   }
 
   /**
