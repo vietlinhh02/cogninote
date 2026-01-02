@@ -28,14 +28,25 @@ export const authenticate = async (
     // Verify token
     const decoded = TokenService.verifyAccessToken(token);
 
-    // Attach user to request
-    req.user = decoded;
+    // Check if token is blacklisted
+    const isBlacklisted = await TokenService.isTokenBlacklisted(token);
+    if (isBlacklisted) {
+      throw new AppError('Token has been revoked', 401);
+    }
+
+    // Attach user to request - map userId to id for compatibility
+    req.user = {
+      id: decoded.userId,
+      email: decoded.email,
+      role: decoded.role,
+    };
 
     next();
   } catch (error) {
     if (error instanceof AppError) {
       next(error);
     } else {
+      console.error('Authentication error:', error);
       next(new AppError('Authentication failed', 401));
     }
   }

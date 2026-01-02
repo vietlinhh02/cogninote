@@ -102,7 +102,11 @@ export class AuthController {
         throw new AppError('Authentication required', 401);
       }
 
-      await AuthService.logoutAll(req.user.userId);
+      // Get current access token
+      const authHeader = req.headers.authorization;
+      const currentToken = authHeader?.substring(7); // Remove 'Bearer ' prefix
+
+      await AuthService.logoutAll(req.user.userId, currentToken);
 
       res.status(200).json({
         status: 'success',

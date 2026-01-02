@@ -38,5 +38,9 @@ export interface UserResponse {
 }
 
 export interface AuthenticatedRequest extends Request {
-  user?: TokenPayload;
+  user?: {
+    id: string;
+    email: string;
+    role: Role;
+  };
 }
