@@ -47,6 +47,67 @@ export class TokenService {
   }
 
   /**
+   * Check if access token is blacklisted
+   */
+  static async isTokenBlacklisted(token: string): Promise<boolean> {
+    const blacklistedToken = await prisma.tokenBlacklist.findUnique({
+      where: { token },
+    });
+
+    if (!blacklistedToken) {
+      return false;
+    }
+
+    // Check if token is expired
+    if (blacklistedToken.expiresAt < new Date()) {
+      // Delete expired token from blacklist
+      await prisma.tokenBlacklist.delete({
+        where: { id: blacklistedToken.id },
+      });
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Add access token to blacklist
+   */
+  static async blacklistToken(token: string, userId: string): Promise<void> {
+    try {
+      // Decode token to get expiry
+      const decoded = jwt.decode(token) as jwt.JwtPayload;
+      if (!decoded || !decoded.exp) {
+        return; // Invalid token, no need to blacklist
+      }
+
+      const expiresAt = new Date(decoded.exp * 1000);
+
+      await prisma.tokenBlacklist.create({
+        data: {
+          userId,
+          token,
+          expiresAt,
+        },
+      });
+    } catch (error) {
+      // Ignore errors - token might already be blacklisted
+      console.error('Error blacklisting token:', error);
+    }
+  }
+
+  /**
+   * Blacklist all active tokens for a user (for logout-all)
+   */
+  static async blacklistUserTokens(userId: string, currentToken?: string): Promise<void> {
+    // Note: This is a simplified approach
+    // In production, you might want to track all issued tokens
+    if (currentToken) {
+      await this.blacklistToken(currentToken, userId);
+    }
+  }
+
+  /**
    * Verify and decode refresh token
    */
   static verifyRefreshToken(token: string): TokenPayload {
@@ -123,10 +184,18 @@ export class TokenService {
   }
 
   /**
-   * Clean up expired refresh tokens
+   * Clean up expired refresh tokens and blacklisted tokens
    */
   static async cleanupExpiredTokens(): Promise<void> {
     await prisma.refreshToken.deleteMany({
+      where: {
+        expiresAt: {
+          lt: new Date(),
+        },
+      },
+    });
+
+    await prisma.tokenBlacklist.deleteMany({
       where: {
         expiresAt: {
           lt: new Date(),
